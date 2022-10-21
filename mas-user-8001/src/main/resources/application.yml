@@ -1,5 +1,5 @@
 server:
-  port: 9930
+  port: 8001
 
 
 #mybatis 配置
@@ -8,8 +8,8 @@ mybatis:
   configuration:
     cache-enabled: true
     call-setters-on-nulls: true
-      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-      map-underscore-to-camel-case: true
+#      log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#      map-underscore-to-camel-case: true
 
 spring:
   # 数据源配置：

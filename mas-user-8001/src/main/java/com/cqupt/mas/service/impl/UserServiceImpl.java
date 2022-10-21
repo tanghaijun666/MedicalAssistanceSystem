@@ -18,23 +18,9 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
  */
 
 
-@Configuration
-@EnableSwagger2
+
 public class UserServiceImpl implements UserService {
 
-    @Bean
-    public Docket getDocket(){
-        ApiInfoBuilder apiInfoBuilder = new ApiInfoBuilder();
-        apiInfoBuilder.title("医疗辅助系统")
-                .description("【医疗辅助系统】后端接口文档")
-                .version("1.0.0");
-        ApiInfo build = apiInfoBuilder.build();
-        return new Docket(DocumentationType.SWAGGER_2)
-                .apiInfo(build)
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("com.cqupt.mas.controller"))
-                .paths(PathSelectors.any())
-                .build();
-    }
+
 
 }
