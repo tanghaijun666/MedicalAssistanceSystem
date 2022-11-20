@@ -1,0 +1,18 @@
+server:
+  port: 8001
+  servlet:
+    context-path: /MedicalSystem
+  tomcat:
+    max-http-header-size: 8192
+
+dicom:
+  file:
+    location: /projects/medical/dicomFile
+
+spring:
+  #设置文件上传的大小限制
+  http:
+    servlet:
+      multipart:
+        max-file-size: 500Mb
+        max-request-size: 500Mb

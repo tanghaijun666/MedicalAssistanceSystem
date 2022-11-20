@@ -11,6 +11,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class MasUser8001 {
     public static void main(String[] args) {
-        SpringApplication.run(MasUser8001.class,args);
+        SpringApplication.run(MasUser8001.class, args);
     }
 }
