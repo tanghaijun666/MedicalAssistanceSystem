@@ -19,4 +19,6 @@ public interface FileService {
     HashMap<String, LinkedList<String>> dicomFilePath(String patienID);
 
     HashMap<String, String> getFileInfo(MultipartFile file, String attributes) throws IOException;
+
+    public String[] getAllPatienId();
 }

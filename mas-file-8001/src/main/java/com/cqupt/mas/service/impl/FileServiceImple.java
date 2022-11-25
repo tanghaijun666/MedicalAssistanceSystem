@@ -1,6 +1,5 @@
 package com.cqupt.mas.service.impl;
 
-import com.cqupt.mas.entity.dto.ResponseEntity;
 import com.cqupt.mas.service.FileService;
 import com.cqupt.mas.utils.DisplayTagUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -102,21 +101,21 @@ public class FileServiceImple implements FileService {
             e.printStackTrace();
         }
 
-            Attributes attributes1 = DisplayTagUtil.loadDicomObject(file.getInputStream());
-            for (String s : split) {
-                Field declaredField = null;
-                try {
-                    declaredField = tagClass.getDeclaredField(s);
-                } catch (NoSuchFieldException e) {
-                    map.put(s,"不存在该属性");
-                    continue;
-                }
-                try {
-                    map.put(s, DisplayTagUtil.getAttribute(attributes1, (Integer) declaredField.get(null)));
-                } catch (IllegalAccessException e) {
-                    map.put(s,"");
-                }
+        Attributes attributes1 = DisplayTagUtil.loadDicomObject(file.getInputStream());
+        for (String s : split) {
+            Field declaredField = null;
+            try {
+                declaredField = tagClass.getDeclaredField(s);
+            } catch (NoSuchFieldException e) {
+                map.put(s, "不存在该属性");
+                continue;
             }
+            try {
+                map.put(s, DisplayTagUtil.getAttribute(attributes1, (Integer) declaredField.get(null)));
+            } catch (IllegalAccessException e) {
+                map.put(s, "");
+            }
+        }
 
         return map;
     }
@@ -150,4 +149,11 @@ public class FileServiceImple implements FileService {
         }
     }
 
+    @Override
+    public String[] getAllPatienId() {
+        File file = new File(dicomFileLocation);
+        String[] list = file.list();
+        return list;
+    }
 }
+

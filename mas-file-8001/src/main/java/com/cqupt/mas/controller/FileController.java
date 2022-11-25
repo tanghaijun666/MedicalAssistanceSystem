@@ -79,4 +79,12 @@ public class FileController {
     public ResponseEntity testConnect(){
         return new ResponseEntity<>(ResponseStatus.SUCCESS_RESPONSE, "连接成功！", null);
     }
+
+    @PostMapping("/getAllPatienId")
+    @ApiOperation("获取所有病人ID")
+    public ResponseEntity<String[]> getAllPatienId(){
+        String[] allPatienId = fileService.getAllPatienId();
+        return new ResponseEntity(ResponseStatus.SUCCESS_RESPONSE,"成功",allPatienId);
+    }
+
 }
