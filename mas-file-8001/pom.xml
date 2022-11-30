@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>com.cqupt.mas</groupId>
-    <artifactId>mas-user</artifactId>
+    <artifactId>mas-file-8001</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>MedicalAssistanceSystem</name>
