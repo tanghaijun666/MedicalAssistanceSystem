@@ -5,12 +5,15 @@ server:
   tomcat:
     max-http-header-size: 8192
 
-dicom:
-  file:
-    location: /projects/medical/dicomFile
+  
 
 spring:
   #设置文件上传的大小限制
+  data:
+    mongodb:
+      host: 43.142.168.114
+      port: 27017
+      database: medical
   http:
     servlet:
       multipart:
