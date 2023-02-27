@@ -1,6 +1,5 @@
 package com.cqupt.mas.utils;
 
-import cn.hutool.core.io.resource.ClassPathResource;
 import cn.hutool.core.util.IdUtil;
 import com.cqupt.mas.constant.DenoisingType;
 import com.cqupt.mas.entity.po.DicomFilePO;
@@ -9,12 +8,10 @@ import org.dcm4che3.imageio.codec.XPEGParser;
 import org.dcm4che3.imageio.codec.jpeg.JPEGParser;
 import org.dcm4che3.io.DicomOutputStream;
 import org.dcm4che3.tool.dcm2jpg.Dcm2Jpg;
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,6 +22,8 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * @author 唐海军
@@ -43,19 +42,39 @@ public class DenoisingUtil {
             Tag.ContentTime
     };
 
+    private static final String TEMP_FILE_PATH = getPath() + "/temp";
+
+
+    private static final double[][] GAUSSIAN_KERNEL = {
+            {0.0625, 0.125, 0.0625},
+            {0.125, 0.25, 0.125},
+            {0.0625, 0.125, 0.0625}
+    };
+
+    //均值滤波和中值滤波核的大小
+    private static final int FILTER_SIZE = 3;
+
+    static {
+        File file = null;
+        file = new File(TEMP_FILE_PATH);
+        if (!file.exists()) {
+            file.mkdirs();
+        }
+    }
+
     public static String denoisingTool(DicomFilePO dicomFilePO, Integer type) throws Exception {
 //        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         String srcFileName = IdUtil.simpleUUID();
-        String tempFilePath = new ClassPathResource("temp").getAbsolutePath() + "/" + srcFileName + ".dcm";
+        String tempFilePath = TEMP_FILE_PATH + "/" + srcFileName + ".dcm";
         byteToFile(tempFilePath, dicomFilePO.getContent().getData());
         File file = new File(tempFilePath);
-        String destFilePath = new ClassPathResource("temp").getAbsolutePath() + "/" + srcFileName + ".jpg";
+        String destFilePath = TEMP_FILE_PATH + "/" + srcFileName + ".jpg";
 
         dcm2JpgByDcm4che(file, destFilePath);
         if (file.exists()) {
             file.delete();
         }
-        String destFilePath1 = new ClassPathResource("temp").getAbsolutePath() + "/" + srcFileName + "1.jpg";
+        String destFilePath1 = TEMP_FILE_PATH + "/" + srcFileName + "1.jpg";
         if (type.equals(DenoisingType.GAUSSIAN_FILTER)) {
             gaussianFilter(destFilePath, destFilePath1);
         } else if (type.equals(DenoisingType.AVERAGE_FILTER)) {
@@ -76,28 +95,121 @@ public class DenoisingUtil {
         return tempFilePath;
     }
 
-    public static void gaussianFilter(String srcPath, String destPath) {
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        Mat src = Imgcodecs.imread(srcPath);
-        Mat dst = new Mat();
-        Imgproc.GaussianBlur(src, dst, new Size(3, 3), 3, 4);
-        Imgcodecs.imwrite(destPath, dst);
+
+    public static void gaussianFilter(String srcPath, String destPath) throws IOException {
+        BufferedImage input = ImageIO.read(new File(srcPath));
+        BufferedImage output = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
+
+        int width = input.getWidth();
+        int height = input.getHeight();
+
+        for (int y = 1; y < height - 1; y++) {
+            for (int x = 1; x < width - 1; x++) {
+
+                double red = 0;
+                double green = 0;
+                double blue = 0;
+
+                for (int i = -1; i <= 1; i++) {
+                    for (int j = -1; j <= 1; j++) {
+                        Color c = new Color(input.getRGB(x + i, y + j));
+                        red += c.getRed() * GAUSSIAN_KERNEL[i + 1][j + 1];
+                        green += c.getGreen() * GAUSSIAN_KERNEL[i + 1][j + 1];
+                        blue += c.getBlue() * GAUSSIAN_KERNEL[i + 1][j + 1];
+                    }
+                }
+
+                int r = (int) Math.round(red);
+                int g = (int) Math.round(green);
+                int b = (int) Math.round(blue);
+                r = Math.min(r, 255);
+                g = Math.min(g, 255);
+                b = Math.min(b, 255);
+
+                output.setRGB(x, y, new Color(r, g, b).getRGB());
+            }
+        }
+        ImageIO.write(output, "jpg", new File(destPath));
     }
 
-    public static void medianFilter(String srcPath, String destPath) {
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        Mat src = Imgcodecs.imread(srcPath);
-        Mat dst = new Mat();
-        Imgproc.medianBlur(src, dst, 5);
-        Imgcodecs.imwrite(destPath, dst);
+    public static void medianFilter(String srcPath, String destPath) throws IOException {
+        BufferedImage input = ImageIO.read(new File(srcPath));
+        BufferedImage output = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
+
+        int width = input.getWidth();
+        int height = input.getHeight();
+
+        for (int y = FILTER_SIZE / 2; y < height - FILTER_SIZE / 2; y++) {
+            for (int x = FILTER_SIZE / 2; x < width - FILTER_SIZE / 2; x++) {
+
+                ArrayList<Integer> reds = new ArrayList<>();
+                ArrayList<Integer> greens = new ArrayList<>();
+                ArrayList<Integer> blues = new ArrayList<>();
+
+                for (int i = -FILTER_SIZE / 2; i <= FILTER_SIZE / 2; i++) {
+                    for (int j = -FILTER_SIZE / 2; j <= FILTER_SIZE / 2; j++) {
+                        Color c = new Color(input.getRGB(x + i, y + j));
+                        reds.add(c.getRed());
+                        greens.add(c.getGreen());
+                        blues.add(c.getBlue());
+                    }
+                }
+
+                int r = getMedian(reds);
+                int g = getMedian(greens);
+                int b = getMedian(blues);
+
+                output.setRGB(x, y, new Color(r, g, b).getRGB());
+            }
+        }
+        ImageIO.write(output, "jpg", new File(destPath));
     }
 
-    public static void averageFilter(String srcPath, String destPath) {
-        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        Mat src = Imgcodecs.imread(srcPath);
-        Mat dst = new Mat();
-        Imgproc.blur(src, dst, new Size(3, 3));
-        Imgcodecs.imwrite(destPath, dst);
+    private static int getMedian(ArrayList<Integer> values) {
+        Collections.sort(values);
+        int middle = values.size() / 2;
+        if (values.size() % 2 == 1) {
+            return values.get(middle);
+        } else {
+            return (values.get(middle - 1) + values.get(middle)) / 2;
+        }
+    }
+
+    public static void averageFilter(String srcPath, String destPath) throws IOException {
+        BufferedImage input = ImageIO.read(new File(srcPath));
+        BufferedImage output = new BufferedImage(input.getWidth(), input.getHeight(), input.getType());
+
+        int width = input.getWidth();
+        int height = input.getHeight();
+
+        for (int y = FILTER_SIZE / 2; y < height - FILTER_SIZE / 2; y++) {
+            for (int x = FILTER_SIZE / 2; x < width - FILTER_SIZE / 2; x++) {
+
+                double red = 0;
+                double green = 0;
+                double blue = 0;
+
+                for (int i = -FILTER_SIZE / 2; i <= FILTER_SIZE / 2; i++) {
+                    for (int j = -FILTER_SIZE / 2; j <= FILTER_SIZE / 2; j++) {
+                        Color c = new Color(input.getRGB(x + i, y + j));
+                        red += c.getRed();
+                        green += c.getGreen();
+                        blue += c.getBlue();
+                    }
+                }
+
+                int r = (int) Math.round(red / (FILTER_SIZE * FILTER_SIZE));
+                int g = (int) Math.round(green / (FILTER_SIZE * FILTER_SIZE));
+                int b = (int) Math.round(blue / (FILTER_SIZE * FILTER_SIZE));
+                r = Math.min(r, 255);
+                g = Math.min(g, 255);
+                b = Math.min(b, 255);
+
+                output.setRGB(x, y, new Color(r, g, b).getRGB());
+            }
+        }
+
+        ImageIO.write(output, "jpg", new File(destPath));
     }
 
     public static void dcm2JpgByDcm4che(File dcmFile, String filePath) {
@@ -114,6 +226,20 @@ public class DenoisingUtil {
 //            return imageFile;
 
     }
+
+    //获取项目所在路径
+    public static String getPath() {
+        String path = DenoisingUtil.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+        if (System.getProperty("os.name").contains("dows")) {
+            path = path.substring(1, path.length());
+        }
+        if (path.contains("jar")) {
+            path = path.substring(0, path.lastIndexOf("."));
+            return path.substring(0, path.lastIndexOf("/")).replaceFirst("file:", "");
+        }
+        return path.replace("target/classes/", "");
+    }
+
 
     public static void convert(Path srcFilePath, Path destFilePath, Attributes metaData) throws Exception {
         Attributes fileMetadata = new Attributes();

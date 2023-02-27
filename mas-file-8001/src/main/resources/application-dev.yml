@@ -3,7 +3,7 @@ server:
   servlet:
     context-path: /MedicalSystem
   tomcat:
-    max-http-header-size: 8192
+    max-http-header-size: 307200
 
 
 spring:
@@ -18,5 +18,4 @@ spring:
       multipart:
         max-file-size: 500Mb
         max-request-size: 500Mb
-
 

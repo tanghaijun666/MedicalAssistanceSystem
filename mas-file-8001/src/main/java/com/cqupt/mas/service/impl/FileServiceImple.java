@@ -115,6 +115,20 @@ public class FileServiceImple implements FileService {
         return collect;
     }
 
+
+    public String getFileIdBySeriesInstanceUIDAndInstanceNumber(String seriesInstanceUID, String instanceNumber) {
+        Criteria criteria = new Criteria();
+        criteria.and("seriesInstanceUID").is(seriesInstanceUID);
+        criteria.and("instanceNumber").is(instanceNumber);
+        Query query = new Query(criteria);
+        query.fields().include("_id");
+        DicomFilePO one = mongoTemplate.findOne(query, DicomFilePO.class);
+        if (one == null) {
+            return null;
+        }
+        return one.getId();
+    }
+
     @Override
     public List<String> getInstanceNumbers(String seriesInstanceUID) {
         Criteria criteria = new Criteria();
@@ -180,10 +194,11 @@ public class FileServiceImple implements FileService {
     public FileExportVo saveBinaryFile(MultipartFile file) throws Exception {
 
         String suffix = getFileSuffix(file);
-
-        DicomFilePO dicomFilePO = dicomFilePORepository.save(this.toDicomFile(file));
-
-        return new FileExportVo(dicomFilePO);
+        DicomFilePO dicomFilePO1 = this.toDicomFile(file);
+        if (this.getFileIdBySeriesInstanceUIDAndInstanceNumber(dicomFilePO1.getSeriesInstanceUID(), dicomFilePO1.getInstanceNumber()) == null) {
+            dicomFilePORepository.save(dicomFilePO1);
+        }
+        return new FileExportVo(dicomFilePO1);
     }
 
     /**
@@ -198,8 +213,10 @@ public class FileServiceImple implements FileService {
 
         String gridFsId = this.storeFileToGridFS(file.getInputStream(), file.getContentType());
 
-        DicomFilePO dicomFilePO = mongoTemplate.save(this.toDicomFile(file));
-
+        DicomFilePO dicomFilePO = this.toDicomFile(file);
+        if (this.getFileIdBySeriesInstanceUIDAndInstanceNumber(dicomFilePO.getSeriesInstanceUID(), dicomFilePO.getInstanceNumber()) == null) {
+            dicomFilePO = mongoTemplate.save(this.toDicomFile(file));
+        }
         return new FileExportVo(dicomFilePO);
     }
 
@@ -383,19 +400,15 @@ public class FileServiceImple implements FileService {
         return collect;
     }
 
+
     @Override
     public FileExportVo getDicomFileBySeriesInstanceUIDAndInstanceNumber(String seriesInstanceUID, String instanceNumber) {
 
-        Criteria criteria = new Criteria();
-        criteria.and("seriesInstanceUID").is(seriesInstanceUID);
-        criteria.and("instanceNumber").is(instanceNumber);
-        Query query = new Query(criteria);
-        query.fields().include("_id");
-        DicomFilePO one = mongoTemplate.findOne(query, DicomFilePO.class);
-        if (one == null) {
+        String fileId = this.getFileIdBySeriesInstanceUIDAndInstanceNumber(seriesInstanceUID, instanceNumber);
+        if (fileId == null) {
             return null;
         }
-        return this.downloadFile(one.getId());
+        return this.downloadFile(this.getFileIdBySeriesInstanceUIDAndInstanceNumber(seriesInstanceUID, instanceNumber));
     }
 
     @Override
@@ -405,13 +418,10 @@ public class FileServiceImple implements FileService {
         if (resultfile != null) {
             return resultfile;
         }
-        Criteria criteria = new Criteria();
-        criteria.and("seriesInstanceUID").is(seriesInstanceUID);
-        criteria.and("instanceNumber").is(instanceNumber);
-        Query query = new Query(criteria);
-        query.fields().include("_id");
-        DicomFilePO one = mongoTemplate.findOne(query, DicomFilePO.class);
-        one = dicomFilePORepository.findById(one.getId()).get();
+
+        DicomFilePO one = dicomFilePORepository
+                .findById(this.getFileIdBySeriesInstanceUIDAndInstanceNumber(seriesInstanceUID, instanceNumber))
+                .get();
         String dcmPath = null;
         try {
             dcmPath = DenoisingUtil.denoisingTool(one, type);

@@ -48,11 +48,13 @@ public class FileExportVo {
     private byte[] data;
 
     public FileExportVo(DicomFilePO dicomFilePO) {
-        BeanUtil.copyProperties(dicomFilePO, this);
-        if (Objects.nonNull(dicomFilePO.getContent())) {
-            this.data = dicomFilePO.getContent().getData();
+        if (dicomFilePO != null) {
+            BeanUtil.copyProperties(dicomFilePO, this);
+            if (Objects.nonNull(dicomFilePO.getContent())) {
+                this.data = dicomFilePO.getContent().getData();
+            }
+            this.fileId = dicomFilePO.getId();
         }
-        this.fileId = dicomFilePO.getId();
     }
 
 }

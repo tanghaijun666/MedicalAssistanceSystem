@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -99,9 +98,9 @@ public class FileController {
     public org.springframework.http.ResponseEntity<Object> getDenoisingFileBySeriesInstanceUIDAndInstanceNumber(
             @RequestParam("seriesInstanceUID") String seriesInstanceUID,
             @RequestParam("instanceNumber") String instanceNumber,
-            @RequestParam("type")Integer type) {
+            @RequestParam("type") Integer type) {
         FileExportVo fileExportVo = fileService.getDenoisingFileBySeriesInstanceUIDAndInstanceNumber(
-                seriesInstanceUID, instanceNumber,type
+                seriesInstanceUID, instanceNumber, type
         );
 
         if (Objects.nonNull(fileExportVo)) {
@@ -114,7 +113,6 @@ public class FileController {
             return org.springframework.http.ResponseEntity.status(HttpStatus.NOT_FOUND).body("file does not exist");
         }
     }
-
 
 
     @PostMapping("/getDicomFileInfo")
@@ -132,7 +130,7 @@ public class FileController {
         HashMap<String, String> fileInfo = null;
         try {
             fileInfo = fileService.getFileInfo(file, attributes);
-        } catch (IOException e) {
+        } catch (Exception e) {
             return new ResponseEntity(ResponseStatus.FAILURE_RESPONSE, "失败，请检查文件是否正确", null);
         }
         return new ResponseEntity<>(ResponseStatus.SUCCESS_RESPONSE, "成功！", fileInfo);
@@ -150,8 +148,6 @@ public class FileController {
         Set<MainShow> mainShow = fileService.getMainShow();
         return new ResponseEntity(ResponseStatus.SUCCESS_RESPONSE, "成功", mainShow);
     }
-
-
 
 
 }

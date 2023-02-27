@@ -18,8 +18,6 @@
     <description>医疗辅助系统</description>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
         <swagger.version>2.9.2</swagger.version>
     </properties>
 
@@ -109,7 +107,7 @@
         <dependency>
             <groupId>org.dcm4che</groupId>
             <artifactId>dcm4che-core</artifactId>
-            <version>5.27.0</version>
+            <version>5.22.5</version>
         </dependency>
         <!-- mongodb -->
         <dependency>
@@ -126,11 +124,6 @@
             <version>4.5.1</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.opencv</groupId>
-            <artifactId>opencv</artifactId>
-            <version>4.5.5</version>
-        </dependency>
 
         <dependency>
             <groupId>net.imagej</groupId>
@@ -173,11 +166,7 @@
             <version>5.22.5</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.dcm4che</groupId>
-            <artifactId>dcm4che-imageio-opencv</artifactId>
-            <version>5.22.5</version>
-        </dependency>
+
 
         <dependency>
             <groupId>org.dcm4che</groupId>
@@ -198,30 +187,36 @@
             <version>1.2</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.dcm4che</groupId>
-            <artifactId>dcm4che-core</artifactId>
-            <version>5.22.5</version>
-        </dependency>
+
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
         </dependency>
 
+
     </dependencies>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.4.2</version>
-            </plugin>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+
+        <!--在这里修改版本-->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>2.4.3</version>
+        </plugin>
+
         </plugins>
 
-        <!--在pom文件中增加（使用maven渲染yml）-->
+
         <resources>
+
+            <!--在pom文件中增加（使用maven渲染yml）-->
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
