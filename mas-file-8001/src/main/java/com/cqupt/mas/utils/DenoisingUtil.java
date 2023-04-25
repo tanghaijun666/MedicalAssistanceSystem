@@ -3,6 +3,7 @@ package com.cqupt.mas.utils;
 import cn.hutool.core.util.IdUtil;
 import com.cqupt.mas.constant.DenoisingType;
 import com.cqupt.mas.entity.po.DicomFilePO;
+import lombok.extern.slf4j.Slf4j;
 import org.dcm4che3.data.*;
 import org.dcm4che3.imageio.codec.XPEGParser;
 import org.dcm4che3.imageio.codec.jpeg.JPEGParser;
@@ -30,12 +31,12 @@ import java.util.Collections;
  * @create 2023-01-06 21:59
  */
 
-
+@Slf4j
 public class DenoisingUtil {
 
 
     private static final int BUFFER_SIZE = 8162;
-    private static byte[] buf = new byte[BUFFER_SIZE];
+    private static final byte[] buf = new byte[BUFFER_SIZE];
     private static final ElementDictionary DICT = ElementDictionary.getStandardElementDictionary();
     private static final int[] TYPE2_TAGS = {
             Tag.ContentDate,
@@ -58,7 +59,10 @@ public class DenoisingUtil {
         File file = null;
         file = new File(TEMP_FILE_PATH);
         if (!file.exists()) {
-            file.mkdirs();
+            boolean mkdirs = file.mkdirs();
+            if (!mkdirs) {
+                log.error("未能成功创建目录来存储去噪时的中间文件，程序不能进行去噪操作");
+            }
         }
     }
 
@@ -71,8 +75,8 @@ public class DenoisingUtil {
         String destFilePath = TEMP_FILE_PATH + "/" + srcFileName + ".jpg";
 
         dcm2JpgByDcm4che(file, destFilePath);
-        if (file.exists()) {
-            file.delete();
+        if (file.exists() && !file.delete()) {
+            log.warn("去噪中间结果文件未能成功删除，可能会造成硬盘存储空间减少");
         }
         String destFilePath1 = TEMP_FILE_PATH + "/" + srcFileName + "1.jpg";
         if (type.equals(DenoisingType.GAUSSIAN_FILTER)) {
@@ -85,12 +89,12 @@ public class DenoisingUtil {
 
         convertJpg2Dcm(destFilePath1, tempFilePath, dicomFilePO, type);
         File file1 = new File(destFilePath);
-        if (file1.exists()) {
-            file1.delete();
+        if (file1.exists() && file1.delete()) {
+            log.warn("去噪中间结果文件未能成功删除，可能会造成硬盘存储空间减少");
         }
         File file2 = new File(destFilePath1);
-        if (file2.exists()) {
-            file2.delete();
+        if (file2.exists() && file2.delete()) {
+            log.warn("去噪中间结果文件未能成功删除，可能会造成硬盘存储空间减少");
         }
         return tempFilePath;
     }
@@ -216,14 +220,12 @@ public class DenoisingUtil {
 
         Dcm2Jpg dcm2Jpg = new Dcm2Jpg();
         dcm2Jpg.initImageWriter("JPEG", null, "com.sun.imageio.plugins.*", null, 1.0);
-//            String imagePath = folderFile.getAbsolutePath() + "\\aa.jpg";
         File imageFile = new File(filePath);
         try {
             dcm2Jpg.convert(dcmFile, imageFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
-//            return imageFile;
 
     }
 
@@ -231,7 +233,7 @@ public class DenoisingUtil {
     public static String getPath() {
         String path = DenoisingUtil.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         if (System.getProperty("os.name").contains("dows")) {
-            path = path.substring(1, path.length());
+            path = path.substring(1);
         }
         if (path.contains("jar")) {
             path = path.substring(0, path.lastIndexOf("."));
@@ -253,23 +255,17 @@ public class DenoisingUtil {
             dos.writeHeader(Tag.Item, null, 0);
             copyPixelData(channel, parser.getCodeStreamPosition(), dos);
             dos.writeHeader(Tag.SequenceDelimitationItem, null, 0);
-//            System.out.println("converted");
         }
     }
 
     /**
      * 将字节流转换成文件
-     *
-     * @param filePath 文件路径加文件名
-     * @param data
-     * @throws Exception
      */
     public static void byteToFile(String filePath, byte[] data) throws Exception {
         if (data != null) {
-            String filepath = filePath;
-            File file = new File(filepath);
-            if (file.exists()) {
-                file.delete();
+            File file = new File(filePath);
+            if (file.exists() && file.delete()) {
+                log.warn("去噪中间结果文件未能成功删除，可能会造成硬盘存储空间减少");
             }
             FileOutputStream fos = new FileOutputStream(file);
             fos.write(data, 0, data.length);

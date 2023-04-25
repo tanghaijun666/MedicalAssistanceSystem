@@ -2,23 +2,16 @@ package com.cqupt.mas.utils;
 
 
 import org.dcm4che3.data.Attributes;
-import org.dcm4che3.data.ElementDictionary;
-import org.dcm4che3.data.Tag;
-import org.dcm4che3.io.DicomEncodingOptions;
 import org.dcm4che3.io.DicomInputStream;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 public final class DisplayTagUtil {
 
-    private static Attributes obj = null, object = null;
-    private DicomEncodingOptions encOpts = DicomEncodingOptions.DEFAULT;
-    private static ElementDictionary dict = ElementDictionary.getStandardElementDictionary();
+    private static Attributes obj = null;
 
 
     public DisplayTagUtil(File file) throws IOException {
@@ -28,18 +21,14 @@ public final class DisplayTagUtil {
 
     /**
      * Put attribut
-     *
-     * @param obj
      */
     public void setObject(Attributes obj) {
-        this.obj = obj;
+        DisplayTagUtil.obj = obj;
     }
 
 
     /**
      * Giving attribut of metadata
-     *
-     * @return
      */
     public static Attributes getObject() {
         return obj;
@@ -49,20 +38,14 @@ public final class DisplayTagUtil {
     /**
      * Read metadata of Dicom 3.0
      *
-     * @param f : input file
-     * @return Attributes
-     * @throws IOException
      */
     public static Attributes loadDicomObject(File f) throws IOException {
         if (f == null) {
             return null;
         } else {
-            DicomInputStream dis = null;
-            Attributes attrs = null;
-            dis = new DicomInputStream(f);
-            attrs = dis.readDataset(-1, -1);
-            //attr.setSpecificCharacterSet("GBK");
-            return attrs;
+           try( DicomInputStream dis = new DicomInputStream(f)){
+               return dis.readDataset(-1, -1);
+           }
         }
     }
 
@@ -70,11 +53,10 @@ public final class DisplayTagUtil {
         if (inputStream == null) {
             return null;
         } else {
-            DicomInputStream dis = null;
-            Attributes attrs = null;
+            DicomInputStream dis ;
+            Attributes attrs;
             dis = new DicomInputStream(inputStream);
             attrs = dis.readDataset(-1, -1);
-            //attr.setSpecificCharacterSet("GBK");
             return attrs;
         }
     }

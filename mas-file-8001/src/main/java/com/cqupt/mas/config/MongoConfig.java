@@ -20,8 +20,6 @@ public class MongoConfig {
 
     /**
      * GridFSBucket用于打开下载流
-     * @param mongoClient
-     * @return
      */
     @Bean
     public GridFSBucket getGridFSBucket(MongoClient mongoClient){

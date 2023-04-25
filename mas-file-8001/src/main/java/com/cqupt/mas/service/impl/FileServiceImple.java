@@ -1,11 +1,12 @@
 package com.cqupt.mas.service.impl;
 
 import cn.hutool.core.io.IoUtil;
-import cn.hutool.core.util.IdUtil;
 import com.cqupt.mas.entity.po.DicomFilePO;
+import com.cqupt.mas.entity.po.LablePO;
 import com.cqupt.mas.entity.vo.FileExportVo;
 import com.cqupt.mas.entity.vo.MainShow;
 import com.cqupt.mas.repository.DicomFilePORepository;
+import com.cqupt.mas.repository.LablePORepository;
 import com.cqupt.mas.service.FileService;
 import com.cqupt.mas.utils.DenoisingUtil;
 import com.cqupt.mas.utils.DisplayTagUtil;
@@ -28,8 +29,10 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,11 +51,21 @@ public class FileServiceImple implements FileService {
     private final GridFsTemplate gridFsTemplate;
     private final GridFSBucket gridFSBucket;
 
+    private final LablePORepository lablePORepository;
+
+    @Override
+    public Boolean saveLabele(LablePO lable) throws Exception {
+
+        if (lable != null) {
+            lablePORepository.save(lable);
+            return true;
+        }
+        return false;
+
+    }
+
     /**
      * 多文件上传
-     *
-     * @param files
-     * @return
      */
     @Override
     public List<FileExportVo> uploadFiles(List<MultipartFile> files) {
@@ -69,10 +82,6 @@ public class FileServiceImple implements FileService {
 
     /**
      * 文件上传
-     *
-     * @param file
-     * @return
-     * @throws Exception
      */
     @Override
     public FileExportVo uploadFile(MultipartFile file) throws Exception {
@@ -85,9 +94,6 @@ public class FileServiceImple implements FileService {
 
     /**
      * 文件下载
-     *
-     * @param fileId
-     * @return
      */
     @Override
     public FileExportVo downloadFile(String fileId) {
@@ -111,8 +117,7 @@ public class FileServiceImple implements FileService {
         if (dicomFilePOS.isEmpty()) {
             return null;
         }
-        List<FileExportVo> collect = dicomFilePOS.stream().map(FileExportVo::new).collect(Collectors.toList());
-        return collect;
+        return dicomFilePOS.stream().map(FileExportVo::new).collect(Collectors.toList());
     }
 
 
@@ -136,13 +141,11 @@ public class FileServiceImple implements FileService {
         Query query = new Query(criteria);
         query.fields().include("instanceNumber");
         List<DicomFilePO> dicomFilePOS = mongoTemplate.find(query, DicomFilePO.class);
-        return dicomFilePOS.stream().map(n -> n.getInstanceNumber()).collect(Collectors.toList());
+        return dicomFilePOS.stream().map(DicomFilePO::getInstanceNumber).collect(Collectors.toList());
     }
 
     /**
      * 文件删除
-     *
-     * @param fileId
      */
     @Override
     public void removeFile(String fileId) {
@@ -159,8 +162,6 @@ public class FileServiceImple implements FileService {
 
     /**
      * 删除Binary文件
-     *
-     * @param fileId
      */
     public void removeBinaryFile(String fileId) {
         dicomFilePORepository.deleteById(fileId);
@@ -168,8 +169,6 @@ public class FileServiceImple implements FileService {
 
     /**
      * 删除GridFs文件
-     *
-     * @param fileId
      */
     public void removeGridFsFile(String fileId) {
         // TODO 根据id查询文件
@@ -186,14 +185,9 @@ public class FileServiceImple implements FileService {
 
     /**
      * 保存Binary文件（小文件）
-     *
-     * @param file
-     * @return
-     * @throws Exception
      */
     public FileExportVo saveBinaryFile(MultipartFile file) throws Exception {
 
-        String suffix = getFileSuffix(file);
         DicomFilePO dicomFilePO1 = this.toDicomFile(file);
         if (this.getFileIdBySeriesInstanceUIDAndInstanceNumber(dicomFilePO1.getSeriesInstanceUID(), dicomFilePO1.getInstanceNumber()) == null) {
             dicomFilePORepository.save(dicomFilePO1);
@@ -203,15 +197,8 @@ public class FileServiceImple implements FileService {
 
     /**
      * 保存GridFs文件（大文件）
-     *
-     * @param file
-     * @return
-     * @throws Exception
      */
     public FileExportVo saveGridFsFile(MultipartFile file) throws Exception {
-        String suffix = getFileSuffix(file);
-
-        String gridFsId = this.storeFileToGridFS(file.getInputStream(), file.getContentType());
 
         DicomFilePO dicomFilePO = this.toDicomFile(file);
         if (this.getFileIdBySeriesInstanceUIDAndInstanceNumber(dicomFilePO.getSeriesInstanceUID(), dicomFilePO.getInstanceNumber()) == null) {
@@ -220,25 +207,9 @@ public class FileServiceImple implements FileService {
         return new FileExportVo(dicomFilePO);
     }
 
-    /**
-     * 上传文件到Mongodb的GridFs中
-     *
-     * @param in
-     * @param contentType
-     * @return
-     */
-    public String storeFileToGridFS(InputStream in, String contentType) {
-        String gridFsId = IdUtil.simpleUUID();
-        // TODO 将文件存储进GridFS中
-        gridFsTemplate.store(in, gridFsId, contentType);
-        return gridFsId;
-    }
 
     /**
      * 获取Binary文件
-     *
-     * @param id
-     * @return
      */
     public Optional<DicomFilePO> getBinaryFileById(String id) {
         return dicomFilePORepository.findById(id);
@@ -246,9 +217,6 @@ public class FileServiceImple implements FileService {
 
     /**
      * 获取Grid文件
-     *
-     * @param id
-     * @return
      */
     public Optional<DicomFilePO> getGridFsFileById(String id) {
         DicomFilePO dicomFilePO = mongoTemplate.findById(id, DicomFilePO.class);
@@ -258,6 +226,7 @@ public class FileServiceImple implements FileService {
                 // TODO 根据id查询文件
                 GridFSFile fsFile = gridFsTemplate.findOne(gridQuery);
                 // TODO 打开流下载对象
+                assert fsFile != null;
                 GridFSDownloadStream in = gridFSBucket.openDownloadStream(fsFile.getObjectId());
                 if (in.getGridFSFile().getLength() > 0) {
                     // TODO 获取流对象
@@ -278,9 +247,6 @@ public class FileServiceImple implements FileService {
 
     /**
      * 获取文件后缀
-     *
-     * @param file
-     * @return
      */
     private String getFileSuffix(MultipartFile file) {
         String suffix = "";
@@ -309,7 +275,7 @@ public class FileServiceImple implements FileService {
 
 
         String suffix = getFileSuffix(file);
-        DicomFilePO dicomFilePO = DicomFilePO.builder()
+        return DicomFilePO.builder()
                 .fileSize(file.getSize())
                 .content(new Binary(file.getBytes()))
                 .contentType(file.getContentType())
@@ -331,7 +297,7 @@ public class FileServiceImple implements FileService {
                 .seriesNumber(seriesNumber)
                 .SOPInstanceUID(SOPInstanceUID)
                 .build();
-        return dicomFilePO;
+
     }
 
 
@@ -348,8 +314,9 @@ public class FileServiceImple implements FileService {
 
         Attributes attributes1 = DisplayTagUtil.loadDicomObject(file.getInputStream());
         for (String s : split) {
-            Field declaredField = null;
+            Field declaredField;
             try {
+                assert tagClass != null;
                 declaredField = tagClass.getDeclaredField(s);
             } catch (NoSuchFieldException e) {
                 map.put(s, "不存在该属性");
@@ -366,28 +333,13 @@ public class FileServiceImple implements FileService {
     }
 
 
-    public void getAllFiles(File file, LinkedList<String> fileName) {
-        File[] files = file.listFiles();
-        if (null != files) {
-            for (int i = 0; i < files.length; i++) {
-                String result = files[i].isFile() ? "一个文件" : "一个目录";
-                if ("一个目录".equals(result)) {
-                    getAllFiles(files[i], fileName);
-                } else {
-                    fileName.add(files[i].getAbsolutePath());
-                }
-            }
-        }
-    }
-
-
     @Override
     public Set<MainShow> getMainShow() {
         Query query = new Query();
         query.fields().include("patientName", "studyDate", "patientId",
                 "modality", "seriesInstanceUID", "accessionNumber");
         List<DicomFilePO> list = mongoTemplate.find(query, DicomFilePO.class);
-        Set<MainShow> collect = list.stream().map(n -> {
+        return list.stream().map(n -> {
             return MainShow.builder()
                     .accessionNumber(n.getAccessionNumber())
                     .modality(n.getModality())
@@ -397,7 +349,7 @@ public class FileServiceImple implements FileService {
                     .seriesInstanceUID(n.getSeriesInstanceUID())
                     .build();
         }).collect(Collectors.toSet());
-        return collect;
+
     }
 
 
@@ -419,9 +371,12 @@ public class FileServiceImple implements FileService {
             return resultfile;
         }
 
-        DicomFilePO one = dicomFilePORepository
-                .findById(this.getFileIdBySeriesInstanceUIDAndInstanceNumber(seriesInstanceUID, instanceNumber))
-                .get();
+        DicomFilePO one=null;
+        Optional<DicomFilePO> item = dicomFilePORepository
+                .findById(this.getFileIdBySeriesInstanceUIDAndInstanceNumber(seriesInstanceUID, instanceNumber));
+        if(item.isPresent())
+            one=item.get();
+        else return null;
         String dcmPath = null;
         try {
             dcmPath = DenoisingUtil.denoisingTool(one, type);
@@ -434,17 +389,16 @@ public class FileServiceImple implements FileService {
         File file = new File(dcmPath);
         MockMultipartFile mockMultipartFile = null;
         try {
-            mockMultipartFile = new MockMultipartFile(file.getName(), new FileInputStream(file));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            mockMultipartFile = new MockMultipartFile(file.getName(), Files.newInputStream(file.toPath()));
         } catch (IOException e) {
             e.printStackTrace();
         }
         FileExportVo fileExportVo = null;
-        if (file.exists()) {
-            file.delete();
+        if (file.exists()&&!file.delete()) {
+           log.info("文件删除失败");
         }
         try {
+            assert mockMultipartFile != null;
             fileExportVo = this.uploadFile(mockMultipartFile);
         } catch (Exception e) {
             e.printStackTrace();

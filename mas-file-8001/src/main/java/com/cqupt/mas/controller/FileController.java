@@ -2,6 +2,7 @@ package com.cqupt.mas.controller;
 
 import com.cqupt.mas.constant.ResponseStatus;
 import com.cqupt.mas.entity.dto.ResponseEntity;
+import com.cqupt.mas.entity.po.LablePO;
 import com.cqupt.mas.entity.vo.FileExportVo;
 import com.cqupt.mas.entity.vo.MainShow;
 import com.cqupt.mas.service.FileService;
@@ -10,12 +11,12 @@ import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -32,22 +33,22 @@ import java.util.Set;
 @Slf4j
 public class FileController {
 
-    @Autowired
+    @Resource
     FileService fileService;
 
     @PostMapping("/uploadDicomFile")
     @ApiOperation("上传dicom文件")
     @ApiImplicitParam(name = "file", value = "需要上传的dicom文件,可以是多个文件", dataType = ".dcm")
-    public ResponseEntity uploadDicomFile(@RequestParam("file") MultipartFile[] files) {
+    public ResponseEntity<?> uploadDicomFile(@RequestParam("file") MultipartFile[] files) {
         try {
             for (MultipartFile file : files) {
                 fileService.uploadFile(file);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return new ResponseEntity(ResponseStatus.FAILURE_RESPONSE, "上传失败，请检查文件是否正确", null);
+            return new ResponseEntity<String>(ResponseStatus.FAILURE_RESPONSE, "上传失败，请检查文件是否正确", null);
         }
-        return new ResponseEntity(ResponseStatus.SUCCESS_RESPONSE, "上传成功！！！", null);
+        return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "上传成功！！！", null);
     }
 
 // 想一次返回该系列的所有文件，但还没有实现。
@@ -131,23 +132,35 @@ public class FileController {
         try {
             fileInfo = fileService.getFileInfo(file, attributes);
         } catch (Exception e) {
-            return new ResponseEntity(ResponseStatus.FAILURE_RESPONSE, "失败，请检查文件是否正确", null);
+            return new ResponseEntity<>(ResponseStatus.FAILURE_RESPONSE, "失败，请检查文件是否正确", null);
         }
         return new ResponseEntity<>(ResponseStatus.SUCCESS_RESPONSE, "成功！", fileInfo);
     }
 
     @GetMapping("/testConnect")
     @ApiOperation("用来测试是否可以成功与服务器连接，无特殊作用")
-    public ResponseEntity testConnect() {
-        return new ResponseEntity<>(ResponseStatus.SUCCESS_RESPONSE, "连接成功！", null);
+    public ResponseEntity<String> testConnect() {
+        return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "连接成功！", null);
     }
 
     @PostMapping("/getMainShow")
     @ApiOperation("展示界面需要的信息，包含所有文件的病人Id，病人名字等信息")
     public ResponseEntity<Set<MainShow>> getMainShow() {
         Set<MainShow> mainShow = fileService.getMainShow();
-        return new ResponseEntity(ResponseStatus.SUCCESS_RESPONSE, "成功", mainShow);
+        return new ResponseEntity<>(ResponseStatus.SUCCESS_RESPONSE, "成功", mainShow);
     }
 
+
+    @PostMapping("/saveLable")
+    @ApiOperation("用来存储展示界面右侧的小窗户里面的值")
+    @ApiImplicitParam(name = "lable", value = "标签信息", required = true, dataType = "LablePO")
+
+    public ResponseEntity<?> saveLable(@RequestBody LablePO lable) throws Exception {
+
+        if(fileService.saveLabele(lable)){
+            return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "成功",null);
+        }
+        return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "失败",null);
+    }
 
 }
