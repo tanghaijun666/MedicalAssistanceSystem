@@ -17,10 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author 唐海军
@@ -42,7 +39,7 @@ public class FileController {
     public ResponseEntity<?> uploadDicomFile(@RequestParam("file") MultipartFile[] files) {
         try {
             for (MultipartFile file : files) {
-                fileService.uploadFile(file);
+                fileService.uploadDicomFile(file);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -51,14 +48,6 @@ public class FileController {
         return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "上传成功！！！", null);
     }
 
-// 想一次返回该系列的所有文件，但还没有实现。
-//    @GetMapping("/getFilesBySeriesInstanceUID")
-//    @ApiOperation("通过序列uid获取文件 ")
-//    @ApiImplicitParam(name = "seriesInstanceUID", value = "序列uid", dataType = "String")
-//    public ResponseEntity<List<FileExportVo>> getFilesBySeriesInstanceUID(@RequestParam("seriesInstanceUID") String seriesInstanceUID) {
-//        List<FileExportVo> filesBySeriesInstanceUID = fileService.getFilesBySeriesInstanceUID(seriesInstanceUID);
-//        return new ResponseEntity<>(ResponseStatus.SUCCESS_RESPONSE, "成功！！！", filesBySeriesInstanceUID);
-//    }
 
 
     @GetMapping("/getInstanceNumbers")
@@ -113,6 +102,15 @@ public class FileController {
         } else {
             return org.springframework.http.ResponseEntity.status(HttpStatus.NOT_FOUND).body("file does not exist");
         }
+    }
+
+
+    @PostMapping("/getDicomFilePath")
+    @ApiOperation("获取文件路径")
+    @ApiImplicitParam(name = "patientID", value = "病人ID", dataType = "String")
+    public ResponseEntity<HashMap<String, LinkedList<String>>> getDicomFilePath(@RequestParam("patientID") String patientID) {
+        HashMap<String, LinkedList<String>> stringLinkedListHashMap = fileService.dicomFilePath(patientID);
+        return new ResponseEntity<>(ResponseStatus.SUCCESS_RESPONSE, "成功！！！", stringLinkedListHashMap);
     }
 
 

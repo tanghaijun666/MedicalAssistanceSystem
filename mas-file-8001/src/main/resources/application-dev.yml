@@ -6,6 +6,10 @@ server:
     max-http-header-size: 307200
 
 
+dicom:
+  file:
+    location: D:/dicomfile
+
 spring:
   #设置文件上传的大小限制
   data:

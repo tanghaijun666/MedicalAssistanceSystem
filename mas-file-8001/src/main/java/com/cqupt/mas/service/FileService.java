@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -26,6 +27,11 @@ public interface FileService {
      * 文件上传
      */
     FileExportVo uploadFile(MultipartFile file) throws Exception;
+
+
+    void uploadDicomFile(MultipartFile file) throws IOException;
+
+    HashMap<String, LinkedList<String>> dicomFilePath(String patienID);
 
     /**
      * 多文件上传
