@@ -105,9 +105,9 @@ public class FileServiceImple implements FileService {
         String studyInstanceUID = DisplayTagUtil.getAttribute(attrs, Tag.StudyInstanceUID);
         String seriesInstanceUID = DisplayTagUtil.getAttribute(attrs, Tag.SeriesInstanceUID);
 //        String SOPInstanceUID = DisplayTagUtil.getAttribute(attrs, Tag.SOPInstanceUID);
-        String InstanceNumber = DisplayTagUtil.getAttribute(attrs, Tag.InstanceNumber);
-        String filePath = dicomFileLocation + "/" + patientId + "/" + date + "/" + studyInstanceUID + "/" + seriesInstanceUID;
-        String fileName = InstanceNumber + ".dcm";
+        String instanceNumber = DisplayTagUtil.getAttribute(attrs, Tag.InstanceNumber);
+        String filePath = dicomFileLocation + "/" + patientId + "/" + date  + "/" + seriesInstanceUID;
+        String fileName = instanceNumber.trim() + ".dcm";
         String absoluteFilePath = filePath + "/" + fileName;
         createFile(filePath, fileName);
 
@@ -460,8 +460,8 @@ public class FileServiceImple implements FileService {
         getAllFiles(file, fileName);
         HashMap<String, LinkedList<String>> map = new HashMap<>();
         for (int i = 0; i < fileName.size(); i++) {
-            //路径中的uid都是六十四位，文件名（包括点4位），分隔符一位
-            Integer seriesInstanceUIDStart = fileName.get(i).length() - 64 - 4 - 1 - 64;
+            //路径中的uid都是六十四位，日期是八位，分隔符一位
+            Integer seriesInstanceUIDStart = dicomFileLocation.length()+1+patienID.length()+1+8+1;
             String seriesInstanceUID = fileName.get(i).substring(seriesInstanceUIDStart, seriesInstanceUIDStart + 64);
             if (map.containsKey(seriesInstanceUID)) {
                 map.get(seriesInstanceUID).add(fileName.get(i));

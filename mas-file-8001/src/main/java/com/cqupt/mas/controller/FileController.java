@@ -40,6 +40,7 @@ public class FileController {
         try {
             for (MultipartFile file : files) {
                 fileService.uploadDicomFile(file);
+                fileService.uploadFile(file);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -49,7 +50,6 @@ public class FileController {
     }
 
 
-
     @GetMapping("/getInstanceNumbers")
     @ApiOperation("获取一个序列dicom所有文件序列（如1,2,3,4")
     public ResponseEntity<List<String>> getInstanceNumbers(@RequestParam("seriesInstanceUID") String seriesInstanceUID) {
@@ -57,16 +57,13 @@ public class FileController {
         return new ResponseEntity<List<String>>(ResponseStatus.SUCCESS_RESPONSE, "成功！", instanceNumbers);
     }
 
+    @Deprecated
     @GetMapping("/getDicomFileBySeriesInstanceUIDAndInstanceNumber")
-    @ApiOperation("通过序列号（InstanceNumber）和序列uid（SeriesInstanceUID）获取文件")
+    @ApiOperation("通过序列号（InstanceNumber）和序列uid（SeriesInstanceUID）获取文件,准备弃用，请从服务器直接读取文件")
     public org.springframework.http.ResponseEntity<Object> getDicomFileBySeriesInstanceUIDAndInstanceNumber(
             @RequestParam("seriesInstanceUID") String seriesInstanceUID,
             @RequestParam("instanceNumber") String instanceNumber) {
 
-//        //这行代码是因为seriesInstanceUID的bug，去噪之后存数据库的值后面有"\u0000"
-//        if (seriesInstanceUID.substring(seriesInstanceUID.length()-1,seriesInstanceUID.length()).equals(" ")){
-//            seriesInstanceUID=seriesInstanceUID.substring(0,seriesInstanceUID.length()-1)+"\u0000";
-//        }
         FileExportVo fileExportVo = fileService.getDicomFileBySeriesInstanceUIDAndInstanceNumber(
                 seriesInstanceUID, instanceNumber
         );
@@ -80,6 +77,15 @@ public class FileController {
         } else {
             return org.springframework.http.ResponseEntity.status(HttpStatus.NOT_FOUND).body("file does not exist");
         }
+    }
+
+    //这个方法仅用于生成swagger接口文档使用，无功能
+    @GetMapping("/noUse")
+    @ApiOperation("这个方法仅用于生成swagger接口文档使用，用来说明如何访问服务器dcm文件，无功能。通过序列号（InstanceNumber）和序列uid（SeriesInstanceUID）获取文件，" +
+            "需要在请求路径（http://{这里是ip地址}:8002/dicomfile/）后面加上访问文件的patientId，studyDate，SeriesInstanceUID,InstanceNumber以及文件后缀" +
+            "如：http://43.142.168.114:8002/dicomfile/LIDC-IDRI-0004/20000101/1.3.6.1.4.1.14519.5.2.1.6279.6001.323541312620128092852212458228/1.dcm" +
+            "路径需要的参数通过getMainShow接口和getInstanceNumbers接口获得")
+    public void getDicomFileBySeriesInstanceUIDAndInstanceNumber() {
     }
 
 
@@ -155,10 +161,10 @@ public class FileController {
 
     public ResponseEntity<?> saveLable(@RequestBody LablePO lable) throws Exception {
 
-        if(fileService.saveLabele(lable)){
-            return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "成功",null);
+        if (fileService.saveLabele(lable)) {
+            return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "成功", null);
         }
-        return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "失败",null);
+        return new ResponseEntity<String>(ResponseStatus.SUCCESS_RESPONSE, "失败", null);
     }
 
 }
