@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sat Jan 07 16:01:15 CST 2023
+dcm4che-core-5.27.0.pom>=
+dcm4che-core-5.27.0.jar>=
